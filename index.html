@@ -1,0 +1,1142 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Black Representation in Congress — An Interactive History</title>
+<meta name="description" content="Explore 150+ years of Black representation in the US Congress, majority-minority districts, and the ongoing story of voting rights in America.">
+
+<!-- External libraries -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.8.5/d3.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/topojson/3.0.2/topojson.min.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=Inter:wght@400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+<style>
+/* ── RESET & BASE ───────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --ink:       #1a1714;
+  --ink-2:     #4a4540;
+  --ink-3:     #8a827a;
+  --paper:     #f7f4ef;
+  --paper-2:   #ede9e1;
+  --paper-3:   #ddd8ce;
+  --accent:    #1b4f8c;
+  --accent-2:  #2d7dd2;
+  --accent-lt: #dce9f7;
+  --gold:      #b07d2a;
+  --gold-lt:   #fdf3de;
+  --green:     #1a6b4a;
+  --green-lt:  #ddf0e6;
+  --red:       #b83232;
+  --red-lt:    #fde8e8;
+  --rule:      #ccc4b8;
+  --radius:    4px;
+  --ff-display: 'DM Serif Display', Georgia, serif;
+  --ff-body:    'Inter', system-ui, sans-serif;
+  --ff-mono:    'DM Mono', 'Courier New', monospace;
+}
+
+html { scroll-behavior: smooth; }
+body {
+  font-family: var(--ff-body);
+  background: var(--paper);
+  color: var(--ink);
+  font-size: 15px;
+  line-height: 1.55;
+  min-height: 100vh;
+}
+
+/* ── MASTHEAD ───────────────────────────────────────────── */
+.masthead {
+  background: var(--ink);
+  color: var(--paper);
+  padding: 3rem 2rem 2.5rem;
+  text-align: center;
+  position: relative;
+  overflow: hidden;
+}
+.masthead::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: repeating-linear-gradient(
+    90deg,
+    transparent,
+    transparent 60px,
+    rgba(255,255,255,0.025) 60px,
+    rgba(255,255,255,0.025) 61px
+  );
+  pointer-events: none;
+}
+.masthead-eyebrow {
+  font-family: var(--ff-mono);
+  font-size: 11px;
+  letter-spacing: .18em;
+  text-transform: uppercase;
+  color: var(--accent-2);
+  margin-bottom: .75rem;
+}
+.masthead h1 {
+  font-family: var(--ff-display);
+  font-size: clamp(1.9rem, 5vw, 3.2rem);
+  line-height: 1.15;
+  color: #fff;
+  max-width: 720px;
+  margin: 0 auto .75rem;
+}
+.masthead h1 em {
+  font-style: italic;
+  color: #a8c8f0;
+}
+.masthead-sub {
+  font-size: 14px;
+  color: rgba(255,255,255,0.6);
+  max-width: 540px;
+  margin: 0 auto 2rem;
+}
+.stat-strip {
+  display: flex;
+  justify-content: center;
+  gap: 2.5rem;
+  flex-wrap: wrap;
+  border-top: 1px solid rgba(255,255,255,0.12);
+  padding-top: 1.5rem;
+}
+.stat-item { text-align: center; }
+.stat-num {
+  font-family: var(--ff-display);
+  font-size: 2rem;
+  color: #fff;
+  line-height: 1;
+  margin-bottom: .2rem;
+}
+.stat-label {
+  font-size: 11px;
+  font-family: var(--ff-mono);
+  letter-spacing: .08em;
+  color: rgba(255,255,255,0.5);
+  text-transform: uppercase;
+}
+
+/* ── NAVIGATION ─────────────────────────────────────────── */
+.nav-bar {
+  background: var(--paper-2);
+  border-bottom: 1px solid var(--rule);
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+.nav-inner {
+  max-width: 1080px;
+  margin: 0 auto;
+  display: flex;
+  overflow-x: auto;
+}
+.nav-btn {
+  padding: .85rem 1.4rem;
+  font-size: 13px;
+  font-weight: 500;
+  font-family: var(--ff-body);
+  cursor: pointer;
+  border: none;
+  background: none;
+  color: var(--ink-2);
+  border-bottom: 3px solid transparent;
+  white-space: nowrap;
+  transition: color .15s, border-color .15s;
+}
+.nav-btn:hover { color: var(--ink); }
+.nav-btn.active { color: var(--accent); border-bottom-color: var(--accent); }
+
+/* ── MAIN LAYOUT ────────────────────────────────────────── */
+main { max-width: 1080px; margin: 0 auto; padding: 2rem 1.5rem 4rem; }
+.panel { display: none; }
+.panel.active { display: block; }
+
+/* ── SECTION TITLES ─────────────────────────────────────── */
+.section-head {
+  margin-bottom: 1.5rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid var(--rule);
+}
+.section-eyebrow {
+  font-family: var(--ff-mono);
+  font-size: 10px;
+  letter-spacing: .15em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+  margin-bottom: .35rem;
+}
+.section-title {
+  font-family: var(--ff-display);
+  font-size: 1.5rem;
+  line-height: 1.2;
+  color: var(--ink);
+}
+
+/* ── METRIC CARDS ───────────────────────────────────────── */
+.metric-row {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: .75rem;
+  margin-bottom: 1.75rem;
+}
+@media (max-width: 640px) { .metric-row { grid-template-columns: repeat(2, 1fr); } }
+.metric-card {
+  background: #fff;
+  border: 1px solid var(--rule);
+  border-radius: var(--radius);
+  padding: 1rem 1.1rem;
+}
+.metric-card .num {
+  font-family: var(--ff-display);
+  font-size: 2rem;
+  color: var(--ink);
+  line-height: 1;
+  margin-bottom: .25rem;
+}
+.metric-card .lbl {
+  font-size: 11px;
+  font-family: var(--ff-mono);
+  color: var(--ink-3);
+  text-transform: uppercase;
+  letter-spacing: .06em;
+}
+
+/* ── CONTROLS BAR ───────────────────────────────────────── */
+.controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  margin-bottom: 1.25rem;
+  align-items: flex-end;
+}
+.ctrl label {
+  display: block;
+  font-size: 11px;
+  font-family: var(--ff-mono);
+  text-transform: uppercase;
+  letter-spacing: .08em;
+  color: var(--ink-3);
+  margin-bottom: .3rem;
+}
+.ctrl select {
+  font-family: var(--ff-body);
+  font-size: 13px;
+  padding: .45rem .7rem;
+  border: 1px solid var(--rule);
+  border-radius: var(--radius);
+  background: #fff;
+  color: var(--ink);
+  cursor: pointer;
+  appearance: none;
+  padding-right: 1.8rem;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' fill='none'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%238a827a' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right .6rem center;
+}
+.ctrl select:focus { outline: 2px solid var(--accent-2); outline-offset: 1px; }
+
+/* ── LEGEND ─────────────────────────────────────────────── */
+.legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  margin-bottom: .75rem;
+  font-size: 12px;
+  color: var(--ink-2);
+}
+.legend-item { display: flex; align-items: center; gap: 5px; }
+.legend-pill {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 4px 10px; border-radius: 20px; font-size: 12px;
+  cursor: pointer; border: 1.5px solid transparent;
+  transition: opacity .15s, border-color .15s; user-select: none;
+  font-family: var(--ff-body);
+}
+.legend-pill.dimmed { opacity: .3; }
+.legend-pill:hover { border-color: currentColor; }
+.reset-btn {
+  padding: 4px 10px; font-size: 12px; cursor: pointer;
+  border: .5px solid var(--rule); border-radius: 20px;
+  background: var(--paper-2); color: var(--ink-2); font-family: var(--ff-body);
+}
+.reset-btn:hover { background: var(--paper); }
+.swatch { width: 10px; height: 10px; border-radius: 2px; flex-shrink: 0; }
+
+/* ── CHART ──────────────────────────────────────────────── */
+.chart-frame {
+  background: #fff;
+  border: 1px solid var(--rule);
+  border-radius: var(--radius);
+  padding: 1.25rem;
+  margin-bottom: 1rem;
+}
+
+/* ── ANNOTATION BOX ─────────────────────────────────────── */
+.annot {
+  background: var(--accent-lt);
+  border-left: 3px solid var(--accent);
+  border-radius: 0 var(--radius) var(--radius) 0;
+  padding: .85rem 1rem;
+  font-size: 13px;
+  color: var(--ink-2);
+  line-height: 1.6;
+  margin-bottom: 1.5rem;
+}
+
+/* ── MAP ────────────────────────────────────────────────── */
+.map-frame {
+  background: #fff;
+  border: 1px solid var(--rule);
+  border-radius: var(--radius);
+  padding: 1.25rem;
+  position: relative;
+}
+.map-hint {
+  font-size: 12px;
+  color: var(--ink-3);
+  margin-top: .5rem;
+  font-family: var(--ff-mono);
+}
+.map-legend-bar {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  font-size: 12px;
+  color: var(--ink-3);
+  margin-top: .75rem;
+}
+.map-legend-bar .grad { height: 10px; flex: 1; border-radius: 2px; }
+
+/* ── DRILL-DOWN ─────────────────────────────────────────── */
+.drill-header {
+  display: flex;
+  align-items: center;
+  gap: .75rem;
+  margin-bottom: 1.25rem;
+}
+.back-btn {
+  display: flex;
+  align-items: center;
+  gap: .4rem;
+  padding: .4rem .9rem;
+  font-size: 13px;
+  font-family: var(--ff-body);
+  cursor: pointer;
+  border: 1px solid var(--rule);
+  border-radius: var(--radius);
+  background: #fff;
+  color: var(--ink-2);
+  transition: background .12s;
+}
+.back-btn:hover { background: var(--paper-2); }
+.drill-state-name {
+  font-family: var(--ff-display);
+  font-size: 1.25rem;
+  color: var(--ink);
+}
+.two-col {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.5rem;
+  align-items: start;
+}
+@media (max-width: 680px) { .two-col { grid-template-columns: 1fr; } }
+
+/* ── DATA TABLE ─────────────────────────────────────────── */
+.data-table-wrap { overflow-x: auto; }
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12.5px;
+}
+.data-table th {
+  text-align: left;
+  padding: 7px 9px;
+  border-bottom: 2px solid var(--rule);
+  font-family: var(--ff-mono);
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: .08em;
+  color: var(--ink-3);
+  white-space: nowrap;
+  position: sticky;
+  top: 0;
+  background: #fff;
+}
+.data-table td {
+  padding: 7px 9px;
+  border-bottom: 1px solid var(--paper-3);
+  color: var(--ink);
+  vertical-align: top;
+}
+.data-table tr:hover td { background: var(--paper); }
+.badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 600;
+  font-family: var(--ff-mono);
+  letter-spacing: .03em;
+}
+.badge-maj { background: var(--green-lt); color: var(--green); }
+.badge-plu { background: var(--accent-lt); color: var(--accent); }
+.badge-hmaj { background: var(--gold-lt); color: var(--gold); }
+.badge-none { background: var(--paper-2); color: var(--ink-3); }
+
+/* ── NATIONAL TABLE ─────────────────────────────────────── */
+.nat-table-wrap { overflow-x: auto; margin-top: 1.25rem; }
+.nat-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+.nat-table th {
+  text-align: left;
+  padding: 7px 10px;
+  border-bottom: 2px solid var(--rule);
+  font-family: var(--ff-mono);
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: .08em;
+  color: var(--ink-3);
+  white-space: nowrap;
+  background: #fff;
+  position: sticky;
+  top: 0;
+}
+.nat-table td {
+  padding: 7px 10px;
+  border-bottom: 1px solid var(--paper-3);
+  color: var(--ink);
+}
+.nat-table tr:hover td { background: var(--paper); }
+.nat-table .num-cell { text-align: center; font-family: var(--ff-mono); font-size: 12px; }
+.warn { font-size: 10px; color: #b83232; margin-left: 4px; }
+
+/* ── FOOTER ─────────────────────────────────────────────── */
+footer {
+  background: var(--ink);
+  color: rgba(255,255,255,.5);
+  text-align: center;
+  padding: 1.5rem 1rem;
+  font-size: 12px;
+  font-family: var(--ff-mono);
+  line-height: 1.8;
+}
+footer a { color: rgba(255,255,255,.65); text-decoration: underline; }
+
+/* ── TOOLTIP (shared) ───────────────────────────────────── */
+.map-tip {
+  position: absolute;
+  background: var(--ink);
+  color: #fff;
+  border-radius: var(--radius);
+  padding: 7px 11px;
+  font-size: 12px;
+  pointer-events: none;
+  display: none;
+  z-index: 50;
+  line-height: 1.5;
+  max-width: 200px;
+  box-shadow: 0 4px 16px rgba(0,0,0,.25);
+}
+</style>
+</head>
+<body>
+
+<!-- MASTHEAD -->
+<header class="masthead">
+  <p class="masthead-eyebrow">1870 — 2025 · United States Congress</p>
+  <h1>Black Representation<br>in <em>American Democracy</em></h1>
+  <p class="masthead-sub">An interactive history of Black members of Congress and majority-minority districts — from Reconstruction through the aftermath of <em>Louisiana v. Callais</em>.</p>
+  <div class="stat-strip">
+    <div class="stat-item"><div class="stat-num">67</div><div class="stat-label">Black members, 119th Congress (record)</div></div>
+    <div class="stat-item"><div class="stat-num">155+</div><div class="stat-label">Years of data</div></div>
+    <div class="stat-item"><div class="stat-num">120</div><div class="stat-label">Majority-minority districts</div></div>
+    <div class="stat-item"><div class="stat-num">28yr</div><div class="stat-label">Gap in representation, 1901–1929</div></div>
+  </div>
+</header>
+
+<!-- NAV -->
+<nav class="nav-bar" aria-label="Main sections">
+  <div class="nav-inner">
+    <button class="nav-btn active" onclick="showPanel('members', event)">Black Members of Congress</button>
+    <button class="nav-btn" onclick="showPanel('districts', event)">Majority-Minority Districts</button>
+  </div>
+</nav>
+
+<!-- MAIN -->
+<main>
+
+  <!-- ── PANEL: MEMBERS ── -->
+  <section id="panel-members" class="panel active" aria-label="Black members of Congress over time">
+    <div class="section-head">
+      <p class="section-eyebrow">Historical record</p>
+      <h2 class="section-title">Black Members of Congress, 1870–2025</h2>
+    </div>
+
+    <div class="metric-row" id="member-metrics"></div>
+
+    <div class="controls">
+      <div class="ctrl">
+        <label for="split-by">Split by</label>
+        <select id="split-by" onchange="renderMembers()">
+          <option value="total">Total</option>
+          <option value="chamber">Chamber (House / Senate)</option>
+          <option value="party">Party (D / R / Other)</option>
+          <option value="preclearance">VRA preclearance status</option>
+        </select>
+      </div>
+      <div class="ctrl">
+        <label for="era-filter">Era</label>
+        <select id="era-filter" onchange="renderMembers()">
+          <option value="all">All eras (1870–2025)</option>
+          <option value="reconstruction">Reconstruction (1870–1901)</option>
+          <option value="gap">Gap era (1901–1954)</option>
+          <option value="civil">Civil Rights era (1955–1992)</option>
+          <option value="modern">Modern era (1993–2025)</option>
+        </select>
+      </div>
+    </div>
+
+    <div id="member-legend" class="legend" style="flex-wrap:wrap;gap:8px;align-items:center"></div>
+    <div class="chart-frame">
+      <canvas id="memberChart" style="height:340px" role="img" aria-label="Line chart of Black members of Congress 1870 to 2025"></canvas>
+    </div>
+    <div class="annot" id="member-annot"></div>
+  </section>
+
+  <!-- ── PANEL: DISTRICTS ── -->
+  <section id="panel-districts" class="panel" aria-label="Majority-minority congressional districts">
+    <div class="section-head">
+      <p class="section-eyebrow">Redistricting & representation</p>
+      <h2 class="section-title">Majority-Minority Congressional Districts</h2>
+    </div>
+
+    <div class="metric-row" id="district-metrics"></div>
+
+    <div class="controls">
+      <div class="ctrl">
+        <label for="dist-view">View</label>
+        <select id="dist-view" onchange="renderDistricts()">
+          <option value="national">National trend + state table</option>
+          <option value="map">State map (click to drill down)</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- NATIONAL TREND -->
+    <div id="dist-trend-section">
+      <div id="dist-legend" class="legend"></div>
+      <div class="chart-frame">
+        <canvas id="distChart" style="height:280px" role="img" aria-label="Bar chart of majority-minority districts over time"></canvas>
+      </div>
+      <div class="nat-table-wrap">
+        <table class="nat-table" aria-label="Majority-minority districts by state">
+          <thead><tr>
+            <th>State</th>
+            <th>Black majority</th>
+            <th>Black plurality</th>
+            <th>Hispanic majority</th>
+            <th>Asian majority</th>
+            <th>Total M-M</th>
+          </tr></thead>
+          <tbody id="nat-table-body"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- MAP VIEW -->
+    <div id="dist-map-section" style="display:none">
+      <!-- national map -->
+      <div id="national-map-wrap" class="map-frame">
+        <div id="map-svg-wrap" style="width:100%;position:relative"></div>
+        <div class="map-legend-bar">
+          <span>Fewer</span>
+          <div class="grad" style="background:linear-gradient(to right,#dce9f7,#1b4f8c)"></div>
+          <span>More M-M districts</span>
+        </div>
+        <p class="map-hint">Click any shaded state to see its congressional districts. · Tennessee's TN-9 (Memphis) was dismantled May 2026 following <em>Louisiana v. Callais</em>.</p>
+      </div>
+
+      <!-- state drill-down -->
+      <div id="state-drill" style="display:none">
+        <div class="drill-header">
+          <button class="back-btn" onclick="closeDrill()">
+            <svg width="14" height="14" fill="none" viewBox="0 0 14 14"><path d="M9 2L4 7l5 5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            Back to US map
+          </button>
+          <span class="drill-state-name" id="drill-title"></span>
+        </div>
+        <div class="two-col">
+          <div class="map-frame">
+            <div id="district-map-svg" style="width:100%;position:relative;min-height:240px"></div>
+            <p class="map-hint">Hover a district for details.</p>
+          </div>
+          <div>
+            <div class="data-table-wrap">
+              <table class="data-table" aria-label="District detail">
+                <thead><tr><th>District</th><th>Black % VAP</th><th>Status</th><th>Member</th><th>Party</th></tr></thead>
+                <tbody id="drill-table-body"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="annot" id="dist-annot"></div>
+  </section>
+
+</main>
+
+<!-- FOOTER -->
+<footer>
+  <p>Data: Congressional Research Service · Ballotpedia · Wikipedia · U.S. Census Bureau · Pew Research Center · <em>Louisiana v. Callais</em> (2026)</p>
+  <p style="margin-top:.4rem">Built for educational use · District boundaries via U.S. Census TIGER/Web · Map data © Census Bureau</p>
+  <p style="margin-top:.4rem">Black members data covers voting members of the House and Senate · Majority-minority data reflects 119th Congress as originally drawn</p>
+</footer>
+
+<script>
+/* ─────────────────────────────────────────────────────────
+   DATA
+───────────────────────────────────────────────────────── */
+// ds = Deep South VRA states fully covered (AL,GA,LA,MS,SC,VA,TX)
+// nc = North Carolina (partially covered — many counties)
+// ns = all other non-covered states
+// Every Congress filled in — no gaps — so the x-axis is fully continuous
+const CONGRESS_DATA = [
+  // Reconstruction (41st–56th Congress, 1869–1901)
+  {year:1869,total:3, house:3, senate:0,dem:0,rep:3, other:0,ds:3, nc:0,ns:0},
+  {year:1871,total:5, house:5, senate:0,dem:0,rep:5, other:0,ds:5, nc:0,ns:0},
+  {year:1873,total:7, house:7, senate:0,dem:0,rep:7, other:0,ds:7, nc:0,ns:0},
+  {year:1875,total:7, house:6, senate:1,dem:0,rep:7, other:0,ds:5, nc:1,ns:0},
+  {year:1877,total:4, house:3, senate:1,dem:0,rep:4, other:0,ds:4, nc:0,ns:0},
+  {year:1879,total:2, house:1, senate:1,dem:0,rep:2, other:0,ds:2, nc:0,ns:0},
+  {year:1881,total:2, house:2, senate:0,dem:0,rep:2, other:0,ds:1, nc:1,ns:0},
+  {year:1883,total:2, house:2, senate:0,dem:0,rep:2, other:0,ds:1, nc:1,ns:0},
+  {year:1885,total:2, house:2, senate:0,dem:0,rep:2, other:0,ds:1, nc:1,ns:0},
+  {year:1887,total:1, house:1, senate:0,dem:0,rep:1, other:0,ds:1, nc:0,ns:0},
+  {year:1889,total:3, house:3, senate:0,dem:0,rep:3, other:0,ds:2, nc:1,ns:0},
+  {year:1891,total:1, house:1, senate:0,dem:0,rep:1, other:0,ds:0, nc:1,ns:0},
+  {year:1893,total:1, house:1, senate:0,dem:0,rep:1, other:0,ds:1, nc:0,ns:0},
+  {year:1895,total:2, house:2, senate:0,dem:0,rep:2, other:0,ds:1, nc:1,ns:0},
+  {year:1897,total:1, house:1, senate:0,dem:0,rep:1, other:0,ds:0, nc:1,ns:0},
+  {year:1899,total:1, house:1, senate:0,dem:0,rep:1, other:0,ds:0, nc:1,ns:0},
+  // Gap era — 28 Congresses at zero (57th–70th, 1901–1929)
+  {year:1901,total:0,house:0,senate:0,dem:0,rep:0,other:0,ds:0,nc:0,ns:0},
+  {year:1903,total:0,house:0,senate:0,dem:0,rep:0,other:0,ds:0,nc:0,ns:0},
+  {year:1905,total:0,house:0,senate:0,dem:0,rep:0,other:0,ds:0,nc:0,ns:0},
+  {year:1907,total:0,house:0,senate:0,dem:0,rep:0,other:0,ds:0,nc:0,ns:0},
+  {year:1909,total:0,house:0,senate:0,dem:0,rep:0,other:0,ds:0,nc:0,ns:0},
+  {year:1911,total:0,house:0,senate:0,dem:0,rep:0,other:0,ds:0,nc:0,ns:0},
+  {year:1913,total:0,house:0,senate:0,dem:0,rep:0,other:0,ds:0,nc:0,ns:0},
+  {year:1915,total:0,house:0,senate:0,dem:0,rep:0,other:0,ds:0,nc:0,ns:0},
+  {year:1917,total:0,house:0,senate:0,dem:0,rep:0,other:0,ds:0,nc:0,ns:0},
+  {year:1919,total:0,house:0,senate:0,dem:0,rep:0,other:0,ds:0,nc:0,ns:0},
+  {year:1921,total:0,house:0,senate:0,dem:0,rep:0,other:0,ds:0,nc:0,ns:0},
+  {year:1923,total:0,house:0,senate:0,dem:0,rep:0,other:0,ds:0,nc:0,ns:0},
+  {year:1925,total:0,house:0,senate:0,dem:0,rep:0,other:0,ds:0,nc:0,ns:0},
+  {year:1927,total:0,house:0,senate:0,dem:0,rep:0,other:0,ds:0,nc:0,ns:0},
+  // De Priest (R-IL) — sole member 1929–1935
+  {year:1929,total:1,house:1,senate:0,dem:0,rep:1,other:0,ds:0,nc:0,ns:1},
+  {year:1931,total:1,house:1,senate:0,dem:0,rep:1,other:0,ds:0,nc:0,ns:1},
+  {year:1933,total:1,house:1,senate:0,dem:0,rep:1,other:0,ds:0,nc:0,ns:1},
+  // Mitchell (D-IL) — first Black Democrat, sole member 1935–1943
+  {year:1935,total:1,house:1,senate:0,dem:1,rep:0,other:0,ds:0,nc:0,ns:1},
+  {year:1937,total:1,house:1,senate:0,dem:1,rep:0,other:0,ds:0,nc:0,ns:1},
+  {year:1939,total:1,house:1,senate:0,dem:1,rep:0,other:0,ds:0,nc:0,ns:1},
+  {year:1941,total:1,house:1,senate:0,dem:1,rep:0,other:0,ds:0,nc:0,ns:1},
+  // Dawson (D-IL) takes Mitchell's seat
+  {year:1943,total:1,house:1,senate:0,dem:1,rep:0,other:0,ds:0,nc:0,ns:1},
+  // Powell (D-NY) joins — first time 2 serve simultaneously in 20th century
+  {year:1945,total:2,house:2,senate:0,dem:2,rep:0,other:0,ds:0,nc:0,ns:2},
+  {year:1947,total:2,house:2,senate:0,dem:2,rep:0,other:0,ds:0,nc:0,ns:2},
+  {year:1949,total:2,house:2,senate:0,dem:2,rep:0,other:0,ds:0,nc:0,ns:2},
+  {year:1951,total:2,house:2,senate:0,dem:2,rep:0,other:0,ds:0,nc:0,ns:2},
+  {year:1953,total:2,house:2,senate:0,dem:2,rep:0,other:0,ds:0,nc:0,ns:2},
+  // Diggs (D-MI) + Nix (D-PA, 1958) join; Dawson=R count corrected to Dem in this era
+  {year:1955,total:3,house:3,senate:0,dem:3,rep:0,other:0,ds:0,nc:0,ns:3},
+  {year:1957,total:4,house:4,senate:0,dem:3,rep:1,other:0,ds:0,nc:0,ns:4},
+  {year:1959,total:4,house:4,senate:0,dem:3,rep:1,other:0,ds:0,nc:0,ns:4},
+  {year:1961,total:4,house:4,senate:0,dem:3,rep:1,other:0,ds:0,nc:0,ns:4},
+  {year:1963,total:5,house:5,senate:0,dem:4,rep:1,other:0,ds:0,nc:0,ns:5},
+  {year:1965,total:6,house:6,senate:0,dem:5,rep:1,other:0,ds:0,nc:0,ns:6},
+  // Brooke (R-MA) joins Senate 1967
+  {year:1967,total:7,house:7,senate:0,dem:6,rep:1,other:0,ds:0,nc:0,ns:7},
+  {year:1969,total:10,house:10,senate:1,dem:9,rep:1,other:0,ds:0,nc:0,ns:10},
+  {year:1971,total:14,house:13,senate:1,dem:13,rep:1,other:0,ds:0,nc:0,ns:14},
+  // Jordan (TX) + Young (GA) = first Deep South members since 1901
+  {year:1973,total:17,house:16,senate:1,dem:16,rep:1,other:0,ds:2,nc:0,ns:15},
+  {year:1975,total:18,house:17,senate:1,dem:17,rep:1,other:0,ds:3,nc:0,ns:15},
+  {year:1977,total:17,house:16,senate:1,dem:16,rep:1,other:0,ds:3,nc:0,ns:14},
+  {year:1979,total:17,house:16,senate:1,dem:16,rep:1,other:0,ds:3,nc:0,ns:14},
+  {year:1981,total:18,house:17,senate:1,dem:17,rep:1,other:0,ds:5,nc:0,ns:13},
+  {year:1983,total:21,house:20,senate:1,dem:20,rep:1,other:0,ds:6,nc:0,ns:15},
+  {year:1985,total:20,house:19,senate:1,dem:19,rep:1,other:0,ds:5,nc:0,ns:15},
+  {year:1987,total:23,house:23,senate:0,dem:23,rep:0,other:0,ds:6,nc:1,ns:16},
+  {year:1989,total:24,house:24,senate:0,dem:24,rep:0,other:0,ds:7,nc:1,ns:16},
+  {year:1991,total:27,house:26,senate:1,dem:26,rep:1,other:0,ds:8,nc:1,ns:18},
+  // 1993 redistricting surge
+  {year:1993,total:40,house:39,senate:1,dem:39,rep:1,other:0,ds:16,nc:2,ns:22},
+  {year:1995,total:41,house:40,senate:1,dem:39,rep:2,other:0,ds:16,nc:2,ns:23},
+  {year:1997,total:39,house:37,senate:1,dem:37,rep:1,other:1,ds:14,nc:2,ns:23},
+  {year:1999,total:39,house:37,senate:2,dem:36,rep:2,other:1,ds:15,nc:2,ns:22},
+  {year:2001,total:38,house:36,senate:2,dem:36,rep:1,other:1,ds:14,nc:2,ns:22},
+  {year:2003,total:40,house:38,senate:2,dem:37,rep:2,other:1,ds:16,nc:2,ns:22},
+  {year:2005,total:43,house:42,senate:1,dem:40,rep:2,other:1,ds:17,nc:2,ns:24},
+  {year:2007,total:43,house:41,senate:2,dem:40,rep:2,other:1,ds:17,nc:2,ns:24},
+  {year:2009,total:42,house:40,senate:2,dem:41,rep:0,other:1,ds:16,nc:2,ns:24},
+  {year:2011,total:44,house:43,senate:0,dem:40,rep:2,other:2,ds:17,nc:2,ns:25},
+  {year:2013,total:44,house:40,senate:2,dem:42,rep:1,other:1,ds:17,nc:2,ns:25},
+  {year:2015,total:49,house:46,senate:3,dem:44,rep:3,other:2,ds:20,nc:2,ns:27},
+  {year:2017,total:52,house:47,senate:3,dem:46,rep:3,other:3,ds:21,nc:2,ns:29},
+  {year:2019,total:57,house:52,senate:3,dem:52,rep:2,other:3,ds:24,nc:2,ns:31},
+  {year:2021,total:59,house:55,senate:3,dem:54,rep:2,other:3,ds:25,nc:2,ns:32},
+  {year:2023,total:62,house:57,senate:3,dem:55,rep:4,other:3,ds:27,nc:2,ns:33},
+  {year:2025,total:67,house:62,senate:5,dem:57,rep:6,other:4,ds:29,nc:2,ns:36},
+];
+
+const DIST_HIST = [
+  {year:1965,total:6},
+  {year:1973,total:16},
+  {year:1983,total:23},
+  {year:1993,total:51,highlight:true},
+  {year:1995,total:50},
+  {year:2003,total:55},
+  {year:2013,total:87},
+  {year:2023,total:141},
+  {year:2025,total:120},
+];
+
+// State data: total M-M, Black majority, Black plurality, Hispanic majority, Asian majority
+// CORRECTED using Wikipedia's confirmed 15 Black-majority districts (VAP >50%, 2020 Census)
+// Source: List of majority-minority United States congressional districts (Wikipedia, 2026)
+// The 15 Black-majority districts: MS-2, TN-9, MD-4, MD-7, LA-6, NJ-10, IL-1, AL-7,
+//   GA-6, GA-13, GA-5, LA-2, PA-3, GA-4, FL-20
+const SD = {
+  'Alabama':       {t:2, bM:1,bP:1,hM:0,aM:0},  // AL-7 maj (51.9%); AL-2 plu (48.7%)
+  'Arizona':       {t:2, bM:0,bP:0,hM:2,aM:0},
+  'California':    {t:44,bM:0,bP:1,hM:13,aM:2},
+  'Colorado':      {t:1, bM:0,bP:0,hM:1,aM:0},
+  'Connecticut':   {t:1, bM:0,bP:1,hM:0,aM:0},
+  'Florida':       {t:7, bM:1,bP:2,hM:5,aM:0},  // FL-20 maj (50.1%); FL-24 & FL-10 plu
+  'Georgia':       {t:5, bM:4,bP:1,hM:0,aM:0},  // GA-4(50.6%),GA-5(51.1%),GA-6(51.8%),GA-13(51.5%) maj; GA-2 plu (49.3%)
+  'Hawaii':        {t:2, bM:0,bP:0,hM:0,aM:2},  // HI-1 (49.9% Asian + 7.9% Pacific Islander); HI-2 (23.2% Asian + 22.6% multi + 12.5% PI)
+  'Illinois':      {t:4, bM:1,bP:2,hM:1,aM:0},  // IL-1 maj (52.0%); IL-2(48.4%) & IL-7(43.0%) plu
+  'Indiana':       {t:1, bM:0,bP:1,hM:0,aM:0},
+  'Louisiana':     {t:2, bM:2,bP:0,hM:0,aM:0},  // LA-2(51.0%) & LA-6(54.0%) maj
+  'Maryland':      {t:2, bM:2,bP:0,hM:0,aM:0},  // MD-4(59.8%) & MD-7(54.7%) maj
+  'Massachusetts': {t:1, bM:0,bP:1,hM:0,aM:0},
+  'Michigan':      {t:2, bM:0,bP:2,hM:0,aM:0},  // MI-13(46.9%) & MI-12 plu
+  'Minnesota':     {t:1, bM:0,bP:1,hM:0,aM:0},
+  'Mississippi':   {t:1, bM:1,bP:0,hM:0,aM:0},  // MS-2 maj (62.1%)
+  'Missouri':      {t:1, bM:0,bP:1,hM:0,aM:0},  // MO-1 plu (45.4%)
+  'Nevada':        {t:1, bM:0,bP:0,hM:1,aM:0},
+  'New Jersey':    {t:2, bM:1,bP:0,hM:1,aM:0},  // NJ-10 maj (52.7%)
+  'New Mexico':    {t:2, bM:0,bP:0,hM:2,aM:0},
+  'New York':      {t:8, bM:0,bP:3,hM:3,aM:1},  // NY-5(47.2%),NY-8(48.2%),NY-9(48.9%) plu — all under 50%
+  'North Carolina':{t:2, bM:0,bP:2,hM:0,aM:0},  // NC-1 & NC-12 plu
+  'Ohio':          {t:2, bM:0,bP:2,hM:0,aM:0},  // OH-11(46.9%) & OH-3 plu
+  'Pennsylvania':  {t:2, bM:1,bP:1,hM:0,aM:0},  // PA-3 maj (51.0%); PA-2 plu
+  'South Carolina':{t:1, bM:0,bP:1,hM:0,aM:0},  // SC-6 plu (46.9%)
+  'Tennessee':     {t:1, bM:1,bP:0,hM:0,aM:0},  // TN-9 maj (60.3%) — dismantled May 2026
+  'Texas':         {t:24,bM:0,bP:2,hM:8,aM:0},
+  'Virginia':      {t:3, bM:0,bP:3,hM:0,aM:0},  // VA-3(45.4%),VA-11,VA-5 plu
+  'Washington':    {t:1, bM:0,bP:0,hM:1,aM:0},
+  'Wisconsin':     {t:1, bM:0,bP:1,hM:0,aM:0},  // WI-4 plu
+};
+
+// CORRECTED district data with accurate VAP % from Wikipedia 2020 Census retabulation
+const DISTRICT_DATA = {
+  'Alabama':      [{num:'AL-7',black:51.9,type:'maj',member:'Terri Sewell',party:'D',note:'Longstanding VRA majority-Black district (51.9% VAP)'},{num:'AL-2',black:48.7,type:'plu',member:'Shomari Figures',party:'D',note:'Redrawn 2023 per Allen v. Milligan; Black plurality (48.7% VAP)'}],
+  'Arizona':      [{num:'AZ-3',black:4.2,type:'hmaj',member:'Yassamin Ansari',party:'D',note:'63% Hispanic; southern/western Phoenix'},{num:'AZ-7',black:3.8,type:'hmaj',member:'Adelita Grijalva',party:'D',note:'Majority-Hispanic; AZ–Mexico border, Tucson & Yuma'}],
+  'Florida':      [{num:'FL-20',black:50.1,type:'maj',member:'Vacant',party:'D',note:'Majority-Black (50.1% VAP); Broward County'},{num:'FL-24',black:42.2,type:'plu',member:'Frederica Wilson',party:'D',note:'Black plurality (42.2% VAP); Miami-Dade'},{num:'FL-10',black:null,type:'plu',member:'Maxwell Frost',party:'D',note:'Multi-minority district; Orlando area'}],
+  'Georgia':      [{num:'GA-6',black:51.8,type:'maj',member:'Lucy McBath',party:'D',note:'Redrawn 2024 per VRA court order; W. metro Atlanta (51.8% VAP)'},{num:'GA-13',black:51.5,type:'maj',member:'Vacant',party:'D',note:'South Atlanta suburbs (51.5% VAP)'},{num:'GA-5',black:51.1,type:'maj',member:'Nikema Williams',party:'D',note:'Atlanta (51.1% VAP)'},{num:'GA-4',black:50.6,type:'maj',member:'Hank Johnson',party:'D',note:'DeKalb County (50.6% VAP)'},{num:'GA-2',black:49.3,type:'plu',member:'Sanford Bishop',party:'D',note:'Southwest GA; Black plurality (49.3% VAP)'}],
+  'Hawaii':       [{num:'HI-1',black:1.8,type:'amaj',member:'Ed Case',party:'D',note:'Honolulu/Oahu urban core; 49.9% Asian + 7.9% Pacific Islander — largest Asian % of any US district'},{num:'HI-2',black:1.2,type:'amaj',member:'Jill Tokuda',party:'D',note:'Outer islands + rural Oahu; 23.2% Asian, 22.6% multiracial, 12.5% Pacific Islander; 28.4% White'}],
+  'Illinois':     [{num:'IL-1',black:52.0,type:'maj',member:'Jonathan Jackson',party:'D',note:'South Side Chicago; majority-Black (52.0% VAP)'},{num:'IL-2',black:48.4,type:'plu',member:'Robin Kelly',party:'D',note:'South suburbs; Black plurality (48.4% VAP)'},{num:'IL-7',black:43.0,type:'plu',member:'Danny Davis',party:'D',note:'West Side Chicago; Black plurality (43.0% VAP)'}],
+  'Louisiana':    [{num:'LA-6',black:54.0,type:'maj',member:'Cleo Fields',party:'D',note:'Created 2024 per VRA (54.0% VAP); at risk post-Callais'},{num:'LA-2',black:51.0,type:'maj',member:'Troy Carter',party:'D',note:'New Orleans; majority-Black (51.0% VAP)'}],
+  'Maryland':     [{num:'MD-4',black:59.8,type:'maj',member:'Glenn Ivey',party:'D',note:"Prince George's County; majority-Black (59.8% VAP)"},{num:'MD-7',black:54.7,type:'maj',member:'Kweisi Mfume',party:'D',note:'Baltimore; majority-Black (54.7% VAP)'}],
+  'Michigan':     [{num:'MI-13',black:46.9,type:'plu',member:'Shri Thanedar',party:'D',note:'Detroit; Black plurality (46.9% VAP)'},{num:'MI-12',black:32.0,type:'plu',member:'Rashida Tlaib',party:'D',note:'Dearborn; multi-minority district'}],
+  'Mississippi':  [{num:'MS-2',black:62.1,type:'maj',member:'Bennie Thompson',party:'D',note:'Mississippi Delta; highest Black VAP nationally (62.1%)'}],
+  'Missouri':     [{num:'MO-1',black:45.4,type:'plu',member:'Cori Bush',party:'D',note:'St. Louis; Black plurality (45.4% VAP)'}],
+  'New Jersey':   [{num:'NJ-10',black:52.7,type:'maj',member:'Donald Payne Jr.',party:'D',note:'Newark/Jersey City; majority-Black (52.7% VAP)'},{num:'NJ-8',black:null,type:'hmaj',member:'Rob Menendez',party:'D',note:'Majority-Hispanic; Hudson County'}],
+  'New Mexico':   [{num:'NM-1',black:2.9,type:'hmaj',member:'Melanie Stansbury',party:'D',note:'Albuquerque area; majority-Hispanic'},{num:'NM-2',black:2.5,type:'hmaj',member:'Gabe Vasquez',party:'D',note:'Southern NM border; majority-Hispanic'}],
+  'New York':     [{num:'NY-9',black:48.9,type:'plu',member:'Yvette Clarke',party:'D',note:'Brooklyn; Black plurality (48.9% VAP)'},{num:'NY-8',black:48.2,type:'plu',member:'Hakeem Jeffries',party:'D',note:'Brooklyn; Black plurality (48.2% VAP)'},{num:'NY-5',black:47.2,type:'plu',member:'Gregory Meeks',party:'D',note:'SE Queens; Black plurality (47.2% VAP)'},{num:'NY-13',black:null,type:'hmaj',member:'Adriano Espaillat',party:'D',note:'Harlem; majority-Hispanic'},{num:'NY-15',black:null,type:'hmaj',member:'Ritchie Torres',party:'D',note:'South Bronx; 97% non-white'}],
+  'North Carolina':[{num:'NC-1',black:null,type:'plu',member:'Don Davis',party:'D',note:'Eastern NC; Black plurality'},{num:'NC-12',black:43.5,type:'plu',member:'Alma Adams',party:'D',note:'Charlotte; Black plurality'}],
+  'Ohio':         [{num:'OH-11',black:46.9,type:'plu',member:'Shontel Brown',party:'D',note:'Cleveland; Black plurality (46.9% VAP)'},{num:'OH-3',black:34.2,type:'plu',member:'Joyce Beatty',party:'D',note:'Columbus; Black plurality'}],
+  'Pennsylvania': [{num:'PA-3',black:51.0,type:'maj',member:'Dwight Evans',party:'D',note:'West Philadelphia; majority-Black (51.0% VAP)'},{num:'PA-2',black:null,type:'plu',member:'Brendan Boyle',party:'D',note:'North Philadelphia; Black plurality'}],
+  'South Carolina':[{num:'SC-6',black:46.9,type:'plu',member:'James Clyburn',party:'D',note:'Black plurality (46.9% VAP); longstanding VRA district'}],
+  'Tennessee':    [{num:'TN-9',black:60.3,type:'maj',member:'Steve Cohen',party:'D',note:'Memphis (60.3% VAP) — dismantled May 2026 post-Callais'}],
+  'Texas':        [{num:'TX-30',black:41.9,type:'plu',member:'Jasmine Crockett',party:'D',note:'Dallas; Black plurality (41.9% VAP)'},{num:'TX-9',black:38.6,type:'plu',member:'Al Green',party:'D',note:'SW Houston; Black plurality (38.6% VAP)'}],
+  'Virginia':     [{num:'VA-3',black:45.4,type:'plu',member:'Bobby Scott',party:'D',note:'Richmond–Newport News; Black plurality (45.4% VAP)'},{num:'VA-11',black:null,type:'plu',member:'Gerry Connolly',party:'D',note:'NoVA suburbs; multi-minority'},{num:'VA-5',black:null,type:'plu',member:'Bob Good',party:'R',note:'Central VA; Black plurality, Republican-held'}],
+  'Wisconsin':    [{num:'WI-4',black:null,type:'plu',member:'Gwen Moore',party:'D',note:'Milwaukee; Black plurality'}],
+};
+
+const ERAS = {
+  reconstruction:{min:1869,max:1901},
+  gap:{min:1902,max:1954},
+  civil:{min:1955,max:1992},
+  modern:{min:1993,max:2025}
+};
+const C = {ds:'#b83232',nc:'#b07d2a',ns:'#1b4f8c',total:'#1b4f8c',house:'#1b4f8c',senate:'#D85A30',dem:'#1b4f8c',rep:'#b83232',oth:'#8a827a'};
+
+/* ─────────────────────────────────────────────────────────
+   STATE
+───────────────────────────────────────────────────────── */
+let memberChart = null, distChart = null, usTopoData = null, allStateFeatures = null;
+
+/* ─────────────────────────────────────────────────────────
+   INTERACTIVE LEGEND
+───────────────────────────────────────────────────────── */
+function makeLegend(items, chartRef, containerId) {
+  const row = document.getElementById(containerId);
+  row.innerHTML = '';
+  items.forEach((item, i) => {
+    const pill = document.createElement('span');
+    pill.className = 'legend-pill';
+    pill.style.color = item.color;
+    pill.innerHTML = `<span class="swatch" style="background:${item.color};width:10px;height:10px;border-radius:2px;flex-shrink:0;display:inline-block"></span>${item.label}`;
+    pill.onclick = () => {
+      const meta = chartRef.getDatasetMeta(i);
+      meta.hidden = !meta.hidden;
+      pill.classList.toggle('dimmed', meta.hidden);
+      chartRef.update();
+    };
+    row.appendChild(pill);
+  });
+  if (items.length > 1) {
+    const btn = document.createElement('button');
+    btn.className = 'reset-btn'; btn.textContent = '↺ Show all';
+    btn.onclick = () => {
+      items.forEach((_, i) => {
+        chartRef.getDatasetMeta(i).hidden = false;
+        row.querySelectorAll('.legend-pill')[i].classList.remove('dimmed');
+      });
+      chartRef.update();
+    };
+    row.appendChild(btn);
+  }
+}
+
+/* ─────────────────────────────────────────────────────────
+   PANEL SWITCHING
+───────────────────────────────────────────────────────── */
+function showPanel(id, e) {
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('panel-' + id).classList.add('active');
+  if (e && e.target) e.target.classList.add('active');
+  if (id === 'members') renderMembers();
+  if (id === 'districts') renderDistricts();
+}
+
+/* ─────────────────────────────────────────────────────────
+   MEMBERS
+───────────────────────────────────────────────────────── */
+function filterByEra(data) {
+  const era = document.getElementById('era-filter').value;
+  if (era === 'all') return data;
+  const e = ERAS[era];
+  return data.filter(d => d.year >= e.min && d.year <= e.max);
+}
+
+function renderMembers() {
+  const split = document.getElementById('split-by').value;
+  const data = filterByEra(CONGRESS_DATA);
+  const latest = CONGRESS_DATA[CONGRESS_DATA.length - 1];
+
+  document.getElementById('member-metrics').innerHTML = `
+    <div class="metric-card"><div class="num">${latest.total}</div><div class="lbl">Serving — 119th Congress</div></div>
+    <div class="metric-card"><div class="num">${latest.house}</div><div class="lbl">House members</div></div>
+    <div class="metric-card"><div class="num">${latest.senate}</div><div class="lbl">Senate members</div></div>
+    <div class="metric-card"><div class="num">${Math.round(latest.total / 535 * 100)}%</div><div class="lbl">Share of Congress</div></div>`;
+
+  let datasets = [], legendItems = [];
+
+  if (split === 'preclearance') {
+    datasets = [
+      {label:'Deep South VRA states (AL,GA,LA,MS,SC,VA,TX)',data:data.map(d=>d.ds),borderColor:C.ds,backgroundColor:'rgba(184,50,50,0.07)',fill:true,tension:0.3,pointRadius:3,pointBackgroundColor:C.ds},
+      {label:'North Carolina (partial coverage)',data:data.map(d=>d.nc),borderColor:C.nc,backgroundColor:'rgba(176,125,42,0.07)',fill:true,tension:0.3,pointRadius:3,borderDash:[5,3],pointBackgroundColor:C.nc},
+      {label:'All other states (not covered)',data:data.map(d=>d.ns),borderColor:C.ns,backgroundColor:'rgba(27,79,140,0.07)',fill:true,tension:0.3,pointRadius:3,borderDash:[2,3],pointBackgroundColor:C.ns},
+    ];
+    legendItems=[{color:C.ds,label:'Deep South VRA states (AL, GA, LA, MS, SC, VA, TX)'},{color:C.nc,label:'North Carolina (partial coverage)'},{color:C.ns,label:'All other states (not covered)'}];
+  } else if (split === 'total') {
+    datasets = [{label:'Total',data:data.map(d=>d.total),borderColor:C.total,backgroundColor:'rgba(27,79,140,0.08)',fill:true,tension:0.3,pointRadius:3,pointBackgroundColor:C.total}];
+    legendItems=[{color:C.total,label:'Total Black members of Congress'}];
+  } else if (split === 'chamber') {
+    datasets = [
+      {label:'House',data:data.map(d=>d.house),borderColor:C.house,backgroundColor:'transparent',tension:0.3,pointRadius:3,pointBackgroundColor:C.house},
+      {label:'Senate',data:data.map(d=>d.senate),borderColor:C.senate,backgroundColor:'transparent',tension:0.3,pointRadius:3,borderDash:[5,3],pointBackgroundColor:C.senate},
+    ];
+    legendItems=[{color:C.house,label:'House'},{color:C.senate,label:'Senate'}];
+  } else {
+    datasets = [
+      {label:'Democrat',data:data.map(d=>d.dem),borderColor:C.dem,backgroundColor:'transparent',tension:0.3,pointRadius:3,pointBackgroundColor:C.dem},
+      {label:'Republican',data:data.map(d=>d.rep),borderColor:C.rep,backgroundColor:'transparent',tension:0.3,pointRadius:3,borderDash:[5,3],pointBackgroundColor:C.rep},
+      {label:'Other',data:data.map(d=>d.other),borderColor:C.oth,backgroundColor:'transparent',tension:0.3,pointRadius:3,borderDash:[2,3],pointBackgroundColor:C.oth},
+    ];
+    legendItems=[{color:C.dem,label:'Democrat'},{color:C.rep,label:'Republican'},{color:C.oth,label:'Other / Independent'}];
+  }
+
+  const annotText = {
+    all: split === 'preclearance'
+      ? 'The Deep South story is the most dramatic: all Black members 1869–1901 were from these states, then zero for 72 years (1901–1973) as Jim Crow suppressed Black voting entirely. Barbara Jordan (TX) and Andrew Young (GA) broke the barrier in 1973. The 1993 redistricting surge added ~8 more Deep South seats in a single Congress. North Carolina shows a parallel arc: George Henry White (NC) was the last Black member from any Southern state when he left in 1901. NC returned Black members in 1987 and today sends two — both in Black-plurality districts now at risk under Louisiana v. Callais. The non-covered states drove all Black representation from 1929–1973 via the Great Migration.'
+      : 'Key moments: 1870 — first Black members (all Republican, party of Lincoln); 1901–1929 — 28-year gap as Jim Crow disenfranchisement took hold; 1965 — Voting Rights Act spurs growth; 1993 — court-mandated redistricting adds 13 members in one Congress; 2025 — record 67 serving.',
+    reconstruction: 'All 22 Reconstruction-era members were Republicans — the party of Lincoln and emancipation. The era ended as Jim Crow laws and violence stripped Black voting rights across the South. George Henry White (NC) left in 1901, beginning a 28-year gap.',
+    gap: 'From 1901–1929, no Black members served in Congress. Oscar De Priest (R-IL) broke the gap in 1929. Through 1954, a small number served — mostly northern Republicans initially, then early northern Democrats as the New Deal coalition began to form.',
+    civil: 'The 1965 Voting Rights Act was the turning point: membership grew from 6 to 27 over this era. The partisan shift from Republican to nearly all-Democrat was nearly complete by the mid-1970s, reflecting the broader realignment of both parties on civil rights.',
+    modern: 'Post-1993 redistricting — driven by the 1982 VRA amendments and 1986 Thornburg v. Gingles ruling — created majority-Black districts across the South, driving a surge from 27 to 40 members in one Congress. Steady growth since has reached a record 67 in 2025.'
+  };
+
+  const era = document.getElementById('era-filter').value;
+  document.getElementById('member-annot').textContent = annotText[era] || annotText.all;
+
+  if (memberChart) { memberChart.destroy(); memberChart = null; }
+  memberChart = new Chart(document.getElementById('memberChart'), {
+    type: 'line',
+    data: { labels: data.map(d => d.year), datasets },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false }, tooltip: { callbacks: { label: ctx => `${ctx.dataset.label}: ${ctx.raw}` } } },
+      scales: {
+        x: { ticks: { color: '#8a827a', maxRotation: 45, autoSkip: true, maxTicksLimit: 18, font: { size: 11, family: "'DM Mono'" } }, grid: { color: 'rgba(0,0,0,0.05)' } },
+        y: { min: 0, ticks: { color: '#8a827a', font: { size: 11, family: "'DM Mono'" } }, grid: { color: 'rgba(0,0,0,0.05)' }, title: { display: true, text: 'Members', color: '#8a827a', font: { size: 11, family: "'DM Mono'" } } }
+      }
+    }
+  });
+  makeLegend(legendItems, memberChart, 'member-legend');
+}
+
+/* ─────────────────────────────────────────────────────────
+   DISTRICTS
+───────────────────────────────────────────────────────── */
+function renderDistricts() {
+  const view = document.getElementById('dist-view').value;
+  document.getElementById('dist-trend-section').style.display = view === 'national' ? 'block' : 'none';
+  document.getElementById('dist-map-section').style.display = view === 'map' ? 'block' : 'none';
+
+  const totalMM = Object.values(SD).reduce((s, d) => s + d.t, 0);
+  const totalBM = Object.values(SD).reduce((s, d) => s + d.bM, 0);
+  const totalBP = Object.values(SD).reduce((s, d) => s + d.bP, 0);
+
+  document.getElementById('district-metrics').innerHTML = `
+    <div class="metric-card"><div class="num">${totalMM}</div><div class="lbl">M-M districts (119th)</div></div>
+    <div class="metric-card"><div class="num">${totalBM}</div><div class="lbl">Black majority</div></div>
+    <div class="metric-card"><div class="num">${totalBP}</div><div class="lbl">Black plurality</div></div>
+    <div class="metric-card"><div class="num">${Object.keys(SD).length}</div><div class="lbl">States with M-M districts</div></div>`;
+
+  document.getElementById('dist-annot').innerHTML = 'The 15 Black-majority districts are those where Black residents exceed 50% of the voting-age population (VAP), per 2020 Census data retabulated for 119th Congress boundaries (Wikipedia/Census Bureau). The 14 Black-plurality districts are those where Black residents are the single largest group but under 50% VAP. The 2026 <em>Louisiana v. Callais</em> ruling eliminated the VRA mandate — Tennessee immediately dismantled TN-9 (Memphis, 60.3% Black VAP), the first post-<em>Callais</em> redistricting.';
+
+  if (view === 'national') { renderDistChart(); renderNatTable(); }
+  else renderNatMap();
+}
+
+function renderDistChart() {
+  document.getElementById('dist-legend').innerHTML = `<div class="legend-item"><div class="swatch" style="background:#1a6b4a"></div>All majority-minority districts</div><div class="legend-item"><div class="swatch" style="background:#b83232"></div>Major redistricting event</div>`;
+  if (distChart) { distChart.destroy(); distChart = null; }
+  distChart = new Chart(document.getElementById('distChart'), {
+    type: 'bar',
+    data: {
+      labels: DIST_HIST.map(d => d.year),
+      datasets: [{ label: 'M-M districts', data: DIST_HIST.map(d => d.total), backgroundColor: DIST_HIST.map(d => d.highlight ? '#b83232' : '#1a6b4a'), borderRadius: 4 }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false }, tooltip: { callbacks: { label: ctx => `Districts: ${DIST_HIST[ctx.dataIndex].total}` } } },
+      scales: {
+        x: { ticks: { color: '#8a827a', font: { size: 11, family: "'DM Mono'" } }, grid: { display: false } },
+        y: { min: 0, ticks: { color: '#8a827a', font: { size: 11, family: "'DM Mono'" } }, grid: { color: 'rgba(0,0,0,0.05)' }, title: { display: true, text: 'Districts', color: '#8a827a', font: { size: 11, family: "'DM Mono'" } } }
+      }
+    }
+  });
+}
+
+function renderNatTable() {
+  const sorted = Object.entries(SD).sort((a, b) => b[1].t - a[1].t);
+  document.getElementById('nat-table-body').innerHTML = sorted.map(([state, d]) => `
+    <tr>
+      <td>${state}${state === 'Tennessee' ? '<span class="warn">⚠ TN-9 dismantled 2026</span>' : ''}</td>
+      <td class="num-cell">${d.bM || '—'}</td>
+      <td class="num-cell">${d.bP || '—'}</td>
+      <td class="num-cell">${d.hM || '—'}</td>
+      <td class="num-cell">${d.aM || '—'}</td>
+      <td class="num-cell" style="font-weight:600">${d.t}</td>
+    </tr>`).join('');
+}
+
+/* ─────────────────────────────────────────────────────────
+   NATIONAL MAP
+───────────────────────────────────────────────────────── */
+function renderNatMap() {
+  document.getElementById('national-map-wrap').style.display = 'block';
+  document.getElementById('state-drill').style.display = 'none';
+  const wrap = document.getElementById('map-svg-wrap');
+  if (usTopoData) { drawNatMap(wrap, usTopoData); return; }
+  wrap.innerHTML = '<p style="font-size:13px;color:#8a827a;padding:1rem 0">Loading map…</p>';
+  d3.json('https://cdn.jsdelivr.net/npm/us-atlas@3/states-10m.json')
+    .then(us => { usTopoData = us; allStateFeatures = topojson.feature(us, us.objects.states).features; drawNatMap(wrap, us); })
+    .catch(() => { wrap.innerHTML = '<p style="font-size:13px;color:#8a827a">Map unavailable. Check your internet connection.</p>'; });
+}
+
+function drawNatMap(wrap, us) {
+  wrap.innerHTML = ''; wrap.style.position = 'relative';
+  const maxVal = Math.max(...Object.values(SD).map(d => d.t));
+  const colorScale = d3.scaleQuantize([0, maxVal], ['#dce9f7','#b5d4f4','#85b7eb','#2d7dd2','#1b4f8c']);
+  const svg = d3.select(wrap).append('svg').attr('viewBox','0 0 900 560').attr('width','100%');
+  const tip = d3.select(wrap).append('div').attr('class','map-tip');
+  const path = d3.geoPath(d3.geoAlbersUsa().scale(1100).translate([450,280]));
+  const features = topojson.feature(us, us.objects.states).features;
+
+  svg.selectAll('path').data(features).join('path')
+    .attr('d', path)
+    .attr('stroke','#fff').attr('stroke-width', 0.7)
+    .attr('fill', d => { const s = SD[d.properties.name]; return s ? colorScale(s.t) : '#e4e0d8'; })
+    .style('cursor', d => SD[d.properties.name] ? 'pointer' : 'default')
+    .on('mousemove', (event, d) => {
+      const name = d.properties.name; const s = SD[name]; if (!s) { tip.style('display','none'); return; }
+      const tn = name === 'Tennessee' ? '<br><span style="color:#f87171">⚠ TN-9 dismantled May 2026</span>' : '';
+      tip.style('display','block')
+        .style('left',(event.offsetX+14)+'px').style('top',(event.offsetY-10)+'px')
+        .html(`<strong>${name}</strong><br>${s.t} M-M district${s.t!==1?'s':''}<br>Black maj: ${s.bM} · Black plu: ${s.bP} · Hisp. maj: ${s.hM}${tn}`);
+    })
+    .on('mouseleave', () => tip.style('display','none'))
+    .on('click', (event, d) => { if (SD[d.properties.name]) openDrill(d.properties.name); });
+}
+
+/* ─────────────────────────────────────────────────────────
+   STATE DRILL-DOWN — boundaries from UCLA congressional DB
+───────────────────────────────────────────────────────── */
+
+// UCLA GeoJSON: state → filename (119th Congress)
+const UCLA_FILES = {
+  'Alabama':'Alabama_119_to_119','Arizona':'Arizona_118_to_119',
+  'California':'California_118_to_119','Colorado':'Colorado_118_to_119',
+  'Connecticut':'Connecticut_118_to_119','Florida':'Florida_118_to_119',
+  'Georgia':'Georgia_119_to_119','Illinois':'Illinois_118_to_119',
+  'Indiana':'Indiana_118_to_119','Louisiana':'Louisiana_119_to_119',
+  'Maryland':'Maryland_118_to_119','Massachusetts':'Massachusetts_118_to_119',
+  'Michigan':'Michigan_118_to_119','Minnesota':'Minnesota_118_to_119',
+  'Mississippi':'Mississippi_118_to_119','Missouri':'Missouri_118_to_119',
+  'Nevada':'Nevada_118_to_119','New Jersey':'New Jersey_118_to_119',
+  'New Mexico':'New Mexico_118_to_119','New York':'New York_119_to_119',
+  'North Carolina':'North Carolina_119_to_119','Ohio':'Ohio_118_to_119',
+  'Pennsylvania':'Pennsylvania_118_to_119','South Carolina':'South Carolina_118_to_119',
+  'Tennessee':'Tennessee_118_to_119','Texas':'Texas_118_to_119',
+  'Virginia':'Virginia_118_to_119','Washington':'Washington_118_to_119',
+  'Wisconsin':'Wisconsin_118_to_119',
+};
+const UCLA_BASE = 'https://raw.githubusercontent.com/JeffreyBLewis/congressional-district-boundaries/master/GeoJson/';
+const geoCache = {};
+
+function openDrill(stateName) {
+  document.getElementById('national-map-wrap').style.display = 'none';
+  document.getElementById('state-drill').style.display = 'block';
+  document.getElementById('drill-title').textContent = stateName;
+
+  const districts = DISTRICT_DATA[stateName] || [];
+  const stateD = SD[stateName];
+  const tbody = document.getElementById('drill-table-body');
+
+  if (districts.length) {
+    tbody.innerHTML = districts.map(d => {
+      const badge = d.type==='maj' ? '<span class="badge badge-maj">Black majority</span>'
+                  : d.type==='plu' ? '<span class="badge badge-plu">Black plurality</span>'
+                  : d.type==='hmaj' ? '<span class="badge badge-hmaj">Hispanic majority</span>'
+                  : '<span class="badge badge-none">Other M-M</span>';
+      const pc = d.party==='D' ? '#1b4f8c' : d.party==='R' ? '#b83232' : '#8a827a';
+      const tn = d.num==='TN-9' ? '<br><small style="color:#b83232">⚠ Dismantled May 2026</small>' : '';
+      return `<tr><td><strong>${d.num}</strong>${tn}</td><td style="font-family:'DM Mono';font-size:11px">${d.black!=null ? d.black+'%' : '—'}</td><td>${badge}</td><td style="font-size:12px">${d.member}</td><td style="color:${pc};font-weight:600;font-size:12px">${d.party}</td></tr>`;
+    }).join('');
+    const extra = stateD ? stateD.t - districts.length : 0;
+    if (extra > 0) tbody.innerHTML += `<tr><td colspan="5" style="color:#8a827a;font-style:italic;font-size:11px;font-family:'DM Mono'">+ ${extra} additional M-M district${extra>1?'s':''} not listed (primarily Hispanic/Asian majority)</td></tr>`;
+  } else {
+    tbody.innerHTML = `<tr><td colspan="5" style="color:#8a827a">No detailed district data available.</td></tr>`;
+  }
+
+  loadDistrictMap(stateName, districts);
+}
+
+function loadDistrictMap(stateName, districts) {
+  const mapDiv = document.getElementById('district-map-svg');
+  if (geoCache[stateName]) { drawDistrictMap(mapDiv, geoCache[stateName], districts); return; }
+  mapDiv.innerHTML = '<p style="font-size:12px;color:#8a827a;padding:.5rem 0">Loading district boundaries…</p>';
+  const fname = UCLA_FILES[stateName];
+  if (!fname) { mapDiv.innerHTML = '<p style="font-size:12px;color:#8a827a">No boundary data for this state.</p>'; return; }
+  fetch(UCLA_BASE + encodeURIComponent(fname) + '.geojson')
+    .then(r => { if (!r.ok) throw new Error(r.status); return r.json(); })
+    .then(gj => { geoCache[stateName] = gj; drawDistrictMap(mapDiv, gj, districts); })
+    .catch(() => { mapDiv.innerHTML = '<p style="font-size:12px;color:#8a827a">District boundaries could not be loaded.</p>'; });
+}
+
+function drawDistrictMap(container, gj, districts) {
+  container.innerHTML = ''; container.style.position = 'relative';
+  // UCLA files use properties.district (float)
+  const dl = {};
+  districts.forEach(d => { const n = parseInt(d.num.split('-')[1]||'0'); dl[n] = d; });
+
+  const svg = d3.select(container).append('svg').attr('width','100%').attr('viewBox','0 0 420 320');
+  const proj = d3.geoMercator().fitSize([420,320], gj);
+  const path = d3.geoPath(proj);
+  const tip = d3.select(container).append('div').attr('class','map-tip');
+
+  svg.selectAll('path').data(gj.features).join('path')
+    .attr('d', path)
+    .attr('stroke','rgba(0,0,0,0.2)').attr('stroke-width', 0.7)
+    .attr('fill', f => {
+      const n = Math.round(f.properties.district || 0);
+      const d = dl[n];
+      if (!d) return '#e4e0d8';
+      if (d.type==='maj') return '#9fe1cb';
+      if (d.type==='plu') return '#b5d4f4';
+      if (d.type==='hmaj') return '#fde9b5';
+      return '#c8edd8';
+    })
+    .style('cursor','pointer')
+    .on('mousemove', (event, f) => {
+      const n = Math.round(f.properties.district || 0);
+      const d = dl[n];
+      const html = d
+        ? `<strong>${d.num}</strong><br>${d.black!=null?'Black VAP: '+d.black+'%<br>':''}${d.member} (${d.party})<br>${d.note||''}`
+        : `District ${n || '?'}<br><span style="opacity:.7">No detailed data</span>`;
+      tip.style('display','block').style('left',(event.offsetX+10)+'px').style('top',(event.offsetY-8)+'px').html(html);
+    })
+    .on('mouseleave', () => tip.style('display','none'));
+
+  svg.selectAll('text').data(gj.features).join('text')
+    .attr('transform', f => `translate(${path.centroid(f)})`)
+    .attr('text-anchor','middle').attr('dominant-baseline','middle')
+    .attr('font-size','9').attr('font-family',"'DM Mono'")
+    .attr('fill','rgba(0,0,0,0.55)').attr('pointer-events','none')
+    .text(f => Math.round(f.properties.district||0)||'');
+
+  const lg = svg.append('g').attr('transform','translate(6,6)');
+  [{c:'#9fe1cb',l:'Black majority (>50% VAP)'},{c:'#b5d4f4',l:'Black plurality'},{c:'#fde9b5',l:'Hispanic majority'},{c:'#e4e0d8',l:'No data'}]
+    .forEach((item, i) => {
+      lg.append('rect').attr('x',0).attr('y',i*15).attr('width',10).attr('height',10).attr('rx',2)
+        .attr('fill',item.c).attr('stroke','rgba(0,0,0,0.15)').attr('stroke-width',.5);
+      lg.append('text').attr('x',14).attr('y',i*15+8).attr('font-size',9)
+        .attr('font-family',"'DM Mono'").attr('fill','rgba(0,0,0,0.55)').attr('dominant-baseline','middle').text(item.l);
+    });
+}
+
+function closeDrill() {
+  document.getElementById('national-map-wrap').style.display = 'block';
+  document.getElementById('state-drill').style.display = 'none';
+}
+
+/* ─────────────────────────────────────────────────────────
+   INIT
+───────────────────────────────────────────────────────── */
+renderMembers();
+renderDistricts();
+</script>
+</body>
+</html>
