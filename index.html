@@ -388,6 +388,7 @@ main { max-width: 1080px; margin: 0 auto; padding: 2rem 1.5rem 4rem; }
 .badge-maj { background: var(--green-lt); color: var(--green); }
 .badge-plu { background: var(--accent-lt); color: var(--accent); }
 .badge-hmaj { background: var(--gold-lt); color: var(--gold); }
+.badge-amaj { background: #EEEDFE; color: #3C3489; }
 .badge-none { background: var(--paper-2); color: var(--ink-3); }
 
 /* ── NATIONAL TABLE ─────────────────────────────────────── */
@@ -519,6 +520,8 @@ footer a { color: rgba(255,255,255,.65); text-decoration: underline; }
       <p class="section-eyebrow">Redistricting & representation</p>
       <h2 class="section-title">Majority-Minority Congressional Districts</h2>
     </div>
+
+    <div class="annot" style="background:var(--gold-lt);border-left-color:var(--gold);margin-bottom:1.5rem"><strong>Note:</strong> the large majority of majority-minority districts nationwide were <em>not</em> created under Section 2 of the Voting Rights Act. Most reflect underlying demographic settlement patterns or partisan map-drawing choices. Only an estimated 30–40 of the 120 majority-minority districts nationally are VRA-mandated — concentrated almost entirely in the Deep South states shown in the preclearance split on the Members tab.</div>
 
     <div class="metric-row" id="district-metrics"></div>
 
@@ -729,6 +732,7 @@ const SD = {
   'Connecticut':   {t:1, bM:0,bP:1,hM:0,aM:0},
   'Florida':       {t:7, bM:1,bP:2,hM:5,aM:0},  // FL-20 maj (50.1%); FL-24 & FL-10 plu
   'Georgia':       {t:5, bM:4,bP:1,hM:0,aM:0},  // GA-4(50.6%),GA-5(51.1%),GA-6(51.8%),GA-13(51.5%) maj; GA-2 plu (49.3%)
+  'Hawaii':        {t:2, bM:0,bP:0,hM:0,aM:2},  // HI-1 (49.9% Asian + 7.9% PI); HI-2 (23.2% Asian + 22.6% multi + 12.5% PI)
   'Hawaii':        {t:2, bM:0,bP:0,hM:0,aM:2},  // HI-1 (49.9% Asian + 7.9% Pacific Islander); HI-2 (23.2% Asian + 22.6% multi + 12.5% PI)
   'Illinois':      {t:4, bM:1,bP:2,hM:1,aM:0},  // IL-1 maj (52.0%); IL-2(48.4%) & IL-7(43.0%) plu
   'Indiana':       {t:1, bM:0,bP:1,hM:0,aM:0},
@@ -760,6 +764,7 @@ const DISTRICT_DATA = {
   'Arizona':      [{num:'AZ-3',black:4.2,type:'hmaj',member:'Yassamin Ansari',party:'D',note:'63% Hispanic; southern/western Phoenix'},{num:'AZ-7',black:3.8,type:'hmaj',member:'Adelita Grijalva',party:'D',note:'Majority-Hispanic; AZ–Mexico border, Tucson & Yuma'}],
   'Florida':      [{num:'FL-20',black:50.1,type:'maj',member:'Vacant',party:'D',note:'Majority-Black (50.1% VAP); Broward County'},{num:'FL-24',black:42.2,type:'plu',member:'Frederica Wilson',party:'D',note:'Black plurality (42.2% VAP); Miami-Dade'},{num:'FL-10',black:null,type:'plu',member:'Maxwell Frost',party:'D',note:'Multi-minority district; Orlando area'}],
   'Georgia':      [{num:'GA-6',black:51.8,type:'maj',member:'Lucy McBath',party:'D',note:'Redrawn 2024 per VRA court order; W. metro Atlanta (51.8% VAP)'},{num:'GA-13',black:51.5,type:'maj',member:'Vacant',party:'D',note:'South Atlanta suburbs (51.5% VAP)'},{num:'GA-5',black:51.1,type:'maj',member:'Nikema Williams',party:'D',note:'Atlanta (51.1% VAP)'},{num:'GA-4',black:50.6,type:'maj',member:'Hank Johnson',party:'D',note:'DeKalb County (50.6% VAP)'},{num:'GA-2',black:49.3,type:'plu',member:'Sanford Bishop',party:'D',note:'Southwest GA; Black plurality (49.3% VAP)'}],
+  'Hawaii':       [{num:'HI-1',black:1.8,type:'amaj',member:'Ed Case',party:'D',note:'Honolulu/Oahu urban core; 49.9% Asian + 7.9% Pacific Islander — largest Asian % of any US district'},{num:'HI-2',black:1.2,type:'amaj',member:'Jill Tokuda',party:'D',note:'Outer islands + rural Oahu; 23.2% Asian, 22.6% multiracial, 12.5% Pacific Islander; 28.4% White'}],
   'Hawaii':       [{num:'HI-1',black:1.8,type:'amaj',member:'Ed Case',party:'D',note:'Honolulu/Oahu urban core; 49.9% Asian + 7.9% Pacific Islander — largest Asian % of any US district'},{num:'HI-2',black:1.2,type:'amaj',member:'Jill Tokuda',party:'D',note:'Outer islands + rural Oahu; 23.2% Asian, 22.6% multiracial, 12.5% Pacific Islander; 28.4% White'}],
   'Illinois':     [{num:'IL-1',black:52.0,type:'maj',member:'Jonathan Jackson',party:'D',note:'South Side Chicago; majority-Black (52.0% VAP)'},{num:'IL-2',black:48.4,type:'plu',member:'Robin Kelly',party:'D',note:'South suburbs; Black plurality (48.4% VAP)'},{num:'IL-7',black:43.0,type:'plu',member:'Danny Davis',party:'D',note:'West Side Chicago; Black plurality (43.0% VAP)'}],
   'Louisiana':    [{num:'LA-6',black:54.0,type:'maj',member:'Cleo Fields',party:'D',note:'Created 2024 per VRA (54.0% VAP); at risk post-Callais'},{num:'LA-2',black:51.0,type:'maj',member:'Troy Carter',party:'D',note:'New Orleans; majority-Black (51.0% VAP)'}],
@@ -1020,7 +1025,7 @@ const UCLA_FILES = {
   'Alabama':'Alabama_119_to_119','Arizona':'Arizona_118_to_119',
   'California':'California_118_to_119','Colorado':'Colorado_118_to_119',
   'Connecticut':'Connecticut_118_to_119','Florida':'Florida_118_to_119',
-  'Georgia':'Georgia_119_to_119','Illinois':'Illinois_118_to_119',
+  'Georgia':'Georgia_119_to_119','Hawaii':'Hawaii_118_to_119','Illinois':'Illinois_118_to_119',
   'Indiana':'Indiana_118_to_119','Louisiana':'Louisiana_119_to_119',
   'Maryland':'Maryland_118_to_119','Massachusetts':'Massachusetts_118_to_119',
   'Michigan':'Michigan_118_to_119','Minnesota':'Minnesota_118_to_119',
@@ -1050,6 +1055,7 @@ function openDrill(stateName) {
       const badge = d.type==='maj' ? '<span class="badge badge-maj">Black majority</span>'
                   : d.type==='plu' ? '<span class="badge badge-plu">Black plurality</span>'
                   : d.type==='hmaj' ? '<span class="badge badge-hmaj">Hispanic majority</span>'
+                  : d.type==='amaj' ? '<span class="badge badge-amaj">Asian majority</span>'
                   : '<span class="badge badge-none">Other M-M</span>';
       const pc = d.party==='D' ? '#1b4f8c' : d.party==='R' ? '#b83232' : '#8a827a';
       const tn = d.num==='TN-9' ? '<br><small style="color:#b83232">⚠ Dismantled May 2026</small>' : '';
@@ -1097,6 +1103,7 @@ function drawDistrictMap(container, gj, districts) {
       if (d.type==='maj') return '#9fe1cb';
       if (d.type==='plu') return '#b5d4f4';
       if (d.type==='hmaj') return '#fde9b5';
+      if (d.type==='amaj') return '#cecbf6';
       return '#c8edd8';
     })
     .style('cursor','pointer')
